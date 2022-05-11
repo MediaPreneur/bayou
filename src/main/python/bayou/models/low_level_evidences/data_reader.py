@@ -133,7 +133,7 @@ class Reader():
             node = nodelist[i]
             node_type = node['node']
             if node_type == 'DAPICall':
-                if nodelist[i] == nodelist[i-1]:
+                if node == nodelist[i - 1]:
                     raise InvalidSketchError
             elif node_type == 'DBranch':
                 self._check_DAPICall_repeats(node['_cond'])
@@ -146,7 +146,7 @@ class Reader():
                 self._check_DAPICall_repeats(node['_cond'])
                 self._check_DAPICall_repeats(node['_body'])
             else:
-                raise ValueError('Invalid node type: ' + node)
+                raise ValueError(f'Invalid node type: {node}')
 
     def validate_sketch_paths(self, program, ast_paths):
         """
@@ -176,7 +176,7 @@ class Reader():
         with open(filename) as f:
             js = json.load(f)
         data_points = []
-        callmap = dict()
+        callmap = {}
         ignored, done = 0, 0
 
         for program in js['programs']:

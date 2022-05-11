@@ -47,7 +47,7 @@ def main(clargs):
 
         for i, program in enumerate(programs):
             start = time.time()
-            if not clargs.evidence == 'all':
+            if clargs.evidence != 'all':
                 if program[clargs.evidence] is []:
                     program['out_asts'] = []
                     print('Program {}, {} ASTs, {:.2f}s'.format(
@@ -57,7 +57,7 @@ def main(clargs):
             else:
                 evidences = program
             asts, counts = [], []
-            for j in range(100):
+            for _ in range(100):
                 if time.time() - start > TIMEOUT:
                     break
                 try:

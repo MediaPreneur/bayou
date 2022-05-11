@@ -89,7 +89,7 @@ class BayesianPredictor(object):
         if token == 'DAPICall':
             ast_call, tokens = self.gen_until_STOP(psi, depth, tokens, check_call=True)
             assert len(ast_call) > 0
-            ast['_call'] = ast_call[0] + '(' + ','.join(ast_call[1:]) + ')'
+            ast['_call'] = f'{ast_call[0]}(' + ','.join(ast_call[1:]) + ')'
             return ast, tokens
 
         if token == 'DBranch':
@@ -120,7 +120,7 @@ class BayesianPredictor(object):
             ast['_nodes'] = ast_nodes
             return ast, tokens
 
-        raise TypeError('Invalid token type: ' + token)
+        raise TypeError(f'Invalid token type: {token}')
 
     def generate_ast(self, psi):
         ast, _ = self.generate_ast_with_tokens(psi, depth=0, in_tokens=['DSubTree'])

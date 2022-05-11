@@ -22,7 +22,10 @@ from bayou.models.core.data_reader import CHILD_EDGE, SIBLING_EDGE
 
 class Model():
     def __init__(self, config, infer=False):
-        assert config.model == 'core', 'Trying to load different model implementation: ' + config.model
+        assert (
+            config.model == 'core'
+        ), f'Trying to load different model implementation: {config.model}'
+
         self.config = config
         if infer:
             config.batch_size = 1
@@ -70,18 +73,19 @@ class Model():
         var_params = [np.prod([dim.value for dim in var.get_shape()])
                       for var in tf.trainable_variables()]
         if not infer:
-            print('Model parameters: {}'.format(np.sum(var_params)))
+            print(f'Model parameters: {np.sum(var_params)}')
 
     def infer_psi(self, sess, evidences):
         # read and wrangle (with batch_size 1) the data
         inputs = [ev.wrangle([ev.read_data_point(evidences)]) for ev in self.config.evidence]
 
         # setup initial states and feed
-        feed = {}
-        for j, ev in enumerate(self.config.evidence):
-            feed[self.encoder.inputs[j].name] = inputs[j]
-        psi = sess.run(self.psi, feed)
-        return psi
+        feed = {
+            self.encoder.inputs[j].name: inputs[j]
+            for j, ev in enumerate(self.config.evidence)
+        }
+
+        return sess.run(self.psi, feed)
 
     def infer_ast(self, sess, psi, nodes, edges):
         # use the given psi and get decoder's start state
@@ -90,7 +94,7 @@ class Model():
 
         # run the decoder for every time step
         for node, edge in zip(nodes, edges):
-            assert edge == CHILD_EDGE or edge == SIBLING_EDGE, 'invalid edge: {}'.format(edge)
+            assert edge in [CHILD_EDGE, SIBLING_EDGE], f'invalid edge: {edge}'
             n = np.array([self.config.decoder.vocab[node]], dtype=np.int32)
             e = np.array([edge == CHILD_EDGE], dtype=np.bool)
 
@@ -100,5 +104,4 @@ class Model():
                 feed[self.decoder.initial_state[i].name] = state[i]
             [probs, state] = sess.run([self.probs, self.decoder.state], feed)
 
-        dist = probs[0]
-        return dist
+        return probs[0]

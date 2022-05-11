@@ -51,7 +51,7 @@ def plot(embeddings, labels, out):
         pylab.annotate(label, xy=(x, y), xytext=(5, 2), textcoords='offset points',
                        ha='right', va='bottom')
     pylab.savefig(out)
-    print('Saved plot to {}'.format(out))
+    print(f'Saved plot to {out}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -30,8 +30,7 @@ class Evidence(object):
         self.load_embedding(save_dir)
 
     def dump_config(self):
-        js = {attr: self.__getattribute__(attr) for attr in CONFIG_ENCODER}
-        return js
+        return {attr: self.__getattribute__(attr) for attr in CONFIG_ENCODER}
 
     @staticmethod
     def read_config(js, save_dir):
@@ -42,12 +41,11 @@ class Evidence(object):
                 e = APICalls()
             elif name == 'types':
                 e = Types()
-            # javadoc_(No.)
             elif name[:7] == 'javadoc':
                 order = name[-1:]
                 e = Javadoc(order, evidence['max_length'], evidence['filter_sizes'], evidence['num_filters'])
             else:
-                raise TypeError('Invalid evidence name: {}'.format(name))
+                raise TypeError(f'Invalid evidence name: {name}')
             e.init_config(evidence, save_dir)
             evidences.append(e)
         return evidences
@@ -105,20 +103,20 @@ class APICalls(Evidence):
             encoding = tf.layers.dense(inputs, self.units)
             w = tf.get_variable('w', [self.units, config.latent_size])
             b = tf.get_variable('b', [config.latent_size])
-            latent_encoding = tf.nn.xw_plus_b(encoding, w, b)
-            return latent_encoding
+            return tf.nn.xw_plus_b(encoding, w, b)
 
     def evidence_loss(self, psi, encoding, config):
         sigma_sq = tf.square(self.sigma)
-        loss = 0.5 * (config.latent_size * tf.log(2 * np.pi * sigma_sq + 1e-10)
-                      + tf.square(encoding - psi) / sigma_sq)
-        return loss
+        return 0.5 * (
+            config.latent_size * tf.log(2 * np.pi * sigma_sq + 1e-10)
+            + tf.square(encoding - psi) / sigma_sq
+        )
 
     @staticmethod
     def from_call(call):
         split = call.split('(')[0].split('.')
         cls, name = split[-2:]
-        return [name] if not cls == name else []
+        return [name] if cls != name else []
 
 
 class Types(Evidence):
@@ -149,14 +147,14 @@ class Types(Evidence):
             encoding = tf.layers.dense(inputs, self.units)
             w = tf.get_variable('w', [self.units, config.latent_size])
             b = tf.get_variable('b', [config.latent_size])
-            latent_encoding = tf.nn.xw_plus_b(encoding, w, b)
-            return latent_encoding
+            return tf.nn.xw_plus_b(encoding, w, b)
 
     def evidence_loss(self, psi, encoding, config):
         sigma_sq = tf.square(self.sigma)
-        loss = 0.5 * (config.latent_size * tf.log(2 * np.pi * sigma_sq + 1e-10)
-                      + tf.square(encoding - psi) / sigma_sq)
-        return loss
+        return 0.5 * (
+            config.latent_size * tf.log(2 * np.pi * sigma_sq + 1e-10)
+            + tf.square(encoding - psi) / sigma_sq
+        )
 
     @staticmethod
     def from_call(call):
@@ -168,7 +166,7 @@ class Types(Evidence):
         args = [arg.split('.')[-1] for arg in args]
         args = [re.sub('<.*', r'', arg) for arg in args]  # remove generics
         args = [re.sub('\[\]', r'', arg) for arg in args]  # remove array type
-        types_args = [arg for arg in args if not arg == '' and not arg.startswith('Tau_')]
+        types_args = [arg for arg in args if arg != '' and not arg.startswith('Tau_')]
 
         return types + types_args
 
@@ -197,8 +195,13 @@ class Javadoc(Evidence):
         # self.max_sentence_length = js['javadoc_' + self.order + '_max_length']
         # embedding
         with tf.Session() as sess:
-            embedding = tf.get_variable('embedding_' + self.order, [js['vocab_size'], js['embedding_size']],
-                                        dtype=tf.float32, trainable=False)
+            embedding = tf.get_variable(
+                f'embedding_{self.order}',
+                [js['vocab_size'], js['embedding_size']],
+                dtype=tf.float32,
+                trainable=False,
+            )
+
             norm = tf.sqrt(tf.reduce_sum(tf.square(embedding), 1, keep_dims=True))
             normalized_embedding = embedding / norm
             saver = tf.train.Saver({'embedding': embedding})
@@ -212,7 +215,7 @@ class Javadoc(Evidence):
     # def read_data_point(self, program, infer=False):
     def read_data_point(self, program):
         # assume data is clean
-        field_name = 'javadoc_' + self.order
+        field_name = f'javadoc_{self.order}'
         javadoc = program[field_name] if field_name in program else None
         if not javadoc:
             javadoc = UNK
@@ -251,11 +254,11 @@ class Javadoc(Evidence):
         return tf.not_equal(tf.count_nonzero(inputs, axis=1), 0)
 
     def init_sigma(self, config):
-        with tf.variable_scope('javadoc_' + self.order):
+        with tf.variable_scope(f'javadoc_{self.order}'):
             self.sigma = tf.get_variable('sigma', [])
 
     def encode(self, inputs, config):
-        with tf.variable_scope('javadoc_' + self.order):
+        with tf.variable_scope(f'javadoc_{self.order}'):
             # step. make embedding a variable tensor
             # W = tf.get_variable(name="W", shape=embedding.shape, tf.constant_initializer(embedding), trainable=False)
             with tf.variable_scope('embedding'):
@@ -270,8 +273,8 @@ class Javadoc(Evidence):
             # convolution and pooling layers
             pooled_outputs = []
             embedding_size = self.final_embedding.shape[1]
-            for i, filter_size in enumerate(self.filter_sizes):
-                with tf.variable_scope('conv-maxpool-%s' % filter_size):
+            for filter_size in self.filter_sizes:
+                with tf.variable_scope(f'conv-maxpool-{filter_size}'):
                     # convolution
                     filter_shape = [filter_size, embedding_size, 1, self.num_filters]
                     # hyper-parameters
@@ -312,12 +315,12 @@ class Javadoc(Evidence):
                     shape=[num_filters_total, config.latent_size],
                     initializer=tf.contrib.layers.xavier_initializer())
                 b = tf.Variable(tf.constant(0.1, shape=[config.latent_size]), name='b')
-                latent_encoding = tf.nn.xw_plus_b(h_drop, W, b, name='encoding')
-                return latent_encoding
+                return tf.nn.xw_plus_b(h_drop, W, b, name='encoding')
 
     def evidence_loss(self, psi, encoding, config):
         sigma_sq = tf.square(self.sigma)
-        loss = 0.5 * (config.latent_size * tf.log(2 * np.pi * sigma_sq + 1e-10)
-                      + tf.square(encoding - psi) / sigma_sq)
-        return loss
+        return 0.5 * (
+            config.latent_size * tf.log(2 * np.pi * sigma_sq + 1e-10)
+            + tf.square(encoding - psi) / sigma_sq
+        )
 

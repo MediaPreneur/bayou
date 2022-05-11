@@ -68,18 +68,19 @@ class Model():
         var_params = [np.prod([dim.value for dim in var.get_shape()])
                       for var in tf.trainable_variables()]
         if not infer:
-            print('Model parameters: {}'.format(np.sum(var_params)))
+            print(f'Model parameters: {np.sum(var_params)}')
 
     def infer_psi(self, sess, evidences):
         # read and wrangle (with batch_size 1) the data
         inputs = [ev.wrangle([ev.read_data_point(evidences)]) for ev in self.config.evidence]
 
         # setup initial states and feed
-        feed = {}
-        for j, ev in enumerate(self.config.evidence):
-            feed[self.encoder.inputs[j].name] = inputs[j]
-        psi = sess.run(self.psi, feed)
-        return psi
+        feed = {
+            self.encoder.inputs[j].name: inputs[j]
+            for j, ev in enumerate(self.config.evidence)
+        }
+
+        return sess.run(self.psi, feed)
 
     def infer_ast(self, sess, psi, tokens):
         # use the given psi and get decoder's start state
@@ -93,5 +94,4 @@ class Model():
                     self.decoder.tokens[0].name: t}
             [probs, state] = sess.run([self.probs, self.decoder.state], feed)
 
-        dist = probs[0]
-        return dist
+        return probs[0]

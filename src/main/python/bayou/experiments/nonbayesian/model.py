@@ -51,25 +51,26 @@ class Model():
         var_params = [np.prod([dim.value for dim in var.get_shape()])
                       for var in tf.trainable_variables()]
         if not infer:
-            print('Model parameters: {}'.format(np.sum(var_params)))
+            print(f'Model parameters: {np.sum(var_params)}')
 
     def infer_encoding(self, sess, evidences):
         # read and wrangle (with batch_size 1) the data
         inputs = [ev.wrangle([ev.read_data_point(evidences)]) for ev in self.config.evidence]
 
         # setup initial states and feed
-        feed = {}
-        for j, ev in enumerate(self.config.evidence):
-            feed[self.encoder.inputs[j].name] = inputs[j]
-        encoding = sess.run(self.encoder.encoding, feed)
-        return encoding
+        feed = {
+            self.encoder.inputs[j].name: inputs[j]
+            for j, ev in enumerate(self.config.evidence)
+        }
+
+        return sess.run(self.encoder.encoding, feed)
 
     def infer_ast(self, sess, encoding, nodes, edges):
         state = encoding
 
         # run the decoder for every time step
         for node, edge in zip(nodes, edges):
-            assert edge == CHILD_EDGE or edge == SIBLING_EDGE, 'invalid edge: {}'.format(edge)
+            assert edge in [CHILD_EDGE, SIBLING_EDGE], f'invalid edge: {edge}'
             n = np.array([self.config.decoder.vocab[node]], dtype=np.int32)
             e = np.array([edge == CHILD_EDGE], dtype=np.bool)
 
@@ -78,5 +79,4 @@ class Model():
                     self.decoder.edges[0].name: e}
             [probs, state] = sess.run([self.probs, self.decoder.state], feed)
 
-        dist = probs[0]
-        return dist
+        return probs[0]

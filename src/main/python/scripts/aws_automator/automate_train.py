@@ -89,7 +89,7 @@ class message:
         self.str = s
 
     def __enter__(self):
-        print(self.str + '...', end='', flush=True)
+        print(f'{self.str}...', end='', flush=True)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         print('done' if exc_type is None else 'ERROR!')
@@ -115,14 +115,16 @@ def get_instance_id_blocking(client, spot_request_id):
     try:
         waiter.wait(SpotInstanceRequestIds=[spot_request_id], WaiterConfig={'Delay': 10, 'MaxAttempts': 4})
     except:
-        with message('Did not get instance id. Closing spot request {}'.format(spot_request_id)):
+        with message(f'Did not get instance id. Closing spot request {spot_request_id}'):
             client.cancel_spot_instance_requests(SpotInstanceRequestIds=[spot_request_id])
         raise
     response = client.describe_spot_instance_requests()
     for spot_request in response['SpotInstanceRequests']:
         if spot_request['SpotInstanceRequestId'] == spot_request_id:
             return spot_request['InstanceId']
-    raise ValueError('Could not find instance id for spot request: {}'.format(spot_request_id))
+    raise ValueError(
+        f'Could not find instance id for spot request: {spot_request_id}'
+    )
 
 
 def terminate_instance_blocking(client, instance_id):
@@ -148,7 +150,7 @@ def connect_to_ip(ssh_private_key_file, ip):
         try:
             ssh.connect(ip, username='ubuntu', pkey=key, timeout=600, auth_timeout=600, banner_timeout=600)
         except (SSHException, AuthenticationException, BadHostKeyException, socket.error) as _:
-            print('#{}...'.format(attempts+1), end='', flush=True)
+            print(f'#{attempts + 1}...', end='', flush=True)
     return ssh
 
 
@@ -156,7 +158,7 @@ def exec_command_blocking(ssh, command):
     stdin, stdout, stderr = ssh.exec_command(command)
     exit_code = stdout.channel.recv_exit_status()
     if exit_code != 0:
-        raise ValueError('exit code is not 0 for command: ' + command)
+        raise ValueError(f'exit code is not 0 for command: {command}')
     return stdout
 
 
@@ -166,12 +168,12 @@ def start_training(ssh, config):
         model_dir = '~/bayou/src/main/python/bayou/models/core'
         # additional setup of LDA files
         for i, lda_file in enumerate(config.bayou_config['lda_files']):
-            exec_command_blocking(ssh, 'aws s3 cp {} lda{}.tar.gz'.format(lda_file, i))
-            exec_command_blocking(ssh, 'tar xf lda{}.tar.gz -C save'.format(i))
+            exec_command_blocking(ssh, f'aws s3 cp {lda_file} lda{i}.tar.gz')
+            exec_command_blocking(ssh, f'tar xf lda{i}.tar.gz -C save')
     elif model_type == 'lle':
         model_dir = '~/bayou/src/main/python/bayou/models/low_level_evidences'
     else:
-        raise ValueError('Invalid model type in config: ' + model_type)
+        raise ValueError(f'Invalid model type in config: {model_type}')
     exec_command_blocking(ssh, """
             (export PYTHONPATH=~/bayou/src/main/python; \
             source anaconda3/bin/activate tensorflow_p36; \
@@ -188,11 +190,11 @@ def automate_train(config):
     with message('Requesting spot instance'):
         spot_request_id = request_spot_instance(client, config.ec2_launch_config, config.ec2_spot_price)
 
-    with message('Getting the instance id for request {}'.format(spot_request_id)):
+    with message(f'Getting the instance id for request {spot_request_id}'):
         instance_id = get_instance_id_blocking(client, spot_request_id)
         client.create_tags(Resources=[instance_id], Tags=[{'Key': 'Name', 'Value': config.training_id}])
 
-    with message('Getting the public IP for instance {}'.format(instance_id)):
+    with message(f'Getting the public IP for instance {instance_id}'):
         public_ip = get_public_ip(client, instance_id)
 
     if os.path.isfile('instances.json'):
@@ -210,7 +212,7 @@ def automate_train(config):
         json.dump(js, fp=f, indent=2)
 
     # 2. Connect to the instance and setup for training
-    with message('Connecting to public IP {}'.format(public_ip)):
+    with message(f'Connecting to public IP {public_ip}'):
         ssh = connect_to_ip(config.ssh_private_key_file, public_ip)
 
     sftp = ssh.open_sftp()
@@ -223,20 +225,20 @@ def automate_train(config):
         exec_command_blocking(ssh, 'source anaconda3/bin/activate tensorflow_p36')
         exec_command_blocking(ssh, 'anaconda3/envs/tensorflow_p36/bin/pip install nltk')
 
-    with message('Copying DATA file {} to instance'.format(config.s3_data_file)):
-        exec_command_blocking(ssh, 'aws s3 cp {} DATA.json'.format(config.s3_data_file))
+    with message(f'Copying DATA file {config.s3_data_file} to instance'):
+        exec_command_blocking(ssh, f'aws s3 cp {config.s3_data_file} DATA.json')
 
-    with message('Checking out Bayou at {}'.format(config.bayou_git_hash)):
+    with message(f'Checking out Bayou at {config.bayou_git_hash}'):
         exec_command_blocking(ssh, 'git clone https://github.com/capergroup/bayou.git'.format(config.bayou_git_hash))
-        exec_command_blocking(ssh, '(cd bayou; git checkout {})'.format(config.bayou_git_hash))
+        exec_command_blocking(ssh, f'(cd bayou; git checkout {config.bayou_git_hash})')
 
     if config.bayou_patch_file is not None:
-        with message('Applying patch file {}'.format(config.bayou_patch_file)):
+        with message(f'Applying patch file {config.bayou_patch_file}'):
             sftp.put(config.bayou_patch_file, 'bayou/patch')
             exec_command_blocking(ssh, '(cd bayou; git apply patch)')
 
     with message('Configuring Bayou for training'):
-        tmpfile = '.config-{}.json'.format(time.time())
+        tmpfile = f'.config-{time.time()}.json'
         with open(tmpfile, 'w') as f:
             json.dump(config.bayou_config, fp=f, indent=2)
         sftp.put(tmpfile, 'config.json')
@@ -255,7 +257,7 @@ def pingall():
     ssh_private_key_file = js['ssh_private_key_file']
     for instance in js['instances']:
         public_ip = instance['public_ip']
-        with message('Connecting to public IP {}'.format(public_ip)):
+        with message(f'Connecting to public IP {public_ip}'):
             ssh = connect_to_ip(ssh_private_key_file, public_ip)
         stdout = exec_command_blocking(ssh, 'grep "Model checkpoint" save/train.out')
         out = stdout.readlines()  # 1 MB (output of grep should not be more than this)
@@ -275,23 +277,38 @@ def wrapup(training_id, checkpoint_epoch, s3_model_location):
     idx, instance = instances[0]
     public_ip = instance['public_ip']
 
-    with message('Connecting to public IP {}'.format(public_ip)):
+    with message(f'Connecting to public IP {public_ip}'):
         ssh = connect_to_ip(ssh_private_key_file, public_ip)
 
-    with message('Preparing model at epoch {}'.format(checkpoint_epoch)):
-        exec_command_blocking(ssh, 'mkdir model{}'.format(checkpoint_epoch))
-        exec_command_blocking(ssh, 'echo "model_checkpoint_path: \\"model{}.ckpt\\"" > model{}/checkpoint'
-                              .format(checkpoint_epoch, checkpoint_epoch))
-        exec_command_blocking(ssh, 'echo "all_model_checkpoint_paths: \\"model{}.ckpt\\"" >> model{}/checkpoint'
-                              .format(checkpoint_epoch, checkpoint_epoch))
-        exec_command_blocking(ssh, 'cp save/callmap.pkl save/config.json save/model{}.* save/model.* save/train.out '
-                                   'model{}'.format(checkpoint_epoch, checkpoint_epoch))
+    with message(f'Preparing model at epoch {checkpoint_epoch}'):
+        exec_command_blocking(ssh, f'mkdir model{checkpoint_epoch}')
+        exec_command_blocking(
+            ssh,
+            f'echo "model_checkpoint_path: \\"model{checkpoint_epoch}.ckpt\\"" > model{checkpoint_epoch}/checkpoint',
+        )
 
-    with message('Tarballing the model into {}.tar.gz'.format(checkpoint_epoch)):
-        exec_command_blocking(ssh, 'tar czf {}.tar.gz -C model{} .'.format(checkpoint_epoch, checkpoint_epoch))
+        exec_command_blocking(
+            ssh,
+            f'echo "all_model_checkpoint_paths: \\"model{checkpoint_epoch}.ckpt\\"" >> model{checkpoint_epoch}/checkpoint',
+        )
 
-    with message('Saving to {}'.format(s3_model_location)):
-        exec_command_blocking(ssh, 'aws s3 cp {}.tar.gz {}'.format(checkpoint_epoch, s3_model_location))
+        exec_command_blocking(
+            ssh,
+            f'cp save/callmap.pkl save/config.json save/model{checkpoint_epoch}.* save/model.* save/train.out model{checkpoint_epoch}',
+        )
+
+
+    with message(f'Tarballing the model into {checkpoint_epoch}.tar.gz'):
+        exec_command_blocking(
+            ssh,
+            f'tar czf {checkpoint_epoch}.tar.gz -C model{checkpoint_epoch} .',
+        )
+
+
+    with message(f'Saving to {s3_model_location}'):
+        exec_command_blocking(
+            ssh, f'aws s3 cp {checkpoint_epoch}.tar.gz {s3_model_location}'
+        )
 
 
 def terminate(training_id):
@@ -309,10 +326,10 @@ def terminate(training_id):
         client = boto3.client('ec2')
         check_aws_config()
 
-    with message('Terminating instance {}'.format(instance_id)):
+    with message(f'Terminating instance {instance_id}'):
         terminate_instance_blocking(client, instance_id)
 
-    with message('Closing spot request {}'.format(spot_request_id)):
+    with message(f'Closing spot request {spot_request_id}'):
         cancel_spot_request(client, spot_request_id)
 
     with message('Updating instances.json'):

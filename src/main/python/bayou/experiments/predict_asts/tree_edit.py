@@ -31,7 +31,7 @@ def editdist(clargs):
         corpus = json.load(f)
     for i, program in enumerate(js['programs']):
         program['corpus_dist'] = int(closest_dist(program['ast'], corpus))
-        print('Done with {} programs'.format(i))
+        print(f'Done with {i} programs')
     with open(clargs.output_file, 'w') as f:
         json.dump(js, f, indent=2)
 

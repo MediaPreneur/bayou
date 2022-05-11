@@ -67,10 +67,7 @@ def read_config(js, chars_vocab=False):
 
 # convert config to JSON
 def dump_config(config):
-    js = {}
-
-    for attr in CONFIG_GENERAL:
-        js[attr] = config.__getattribute__(attr)
+    js = {attr: config.__getattribute__(attr) for attr in CONFIG_GENERAL}
 
     js['evidence'] = [ev.dump_config() for ev in config.evidence]
     js['decoder'] = {attr: config.decoder.__getattribute__(attr) for attr in

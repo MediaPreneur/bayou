@@ -69,9 +69,7 @@ class BayesianPredictor(object):
         :param beam_width: width of the beam search
         :return: list of ASTs ordered by their probabilities
         """
-        psis = []
-        for i in range(num_psi_samples):
-            psis.append(self.psi_from_evidence(evidences))
+        psis = [self.psi_from_evidence(evidences) for _ in range(num_psi_samples)]
         psi = np.mean(psis, axis=0)
         return self.generate_asts_beam_search(psi, beam_width)
 
@@ -244,7 +242,7 @@ class BayesianPredictor(object):
                 self.consume_DLoop(path, idx)
                 return -1
             else:
-                raise ValueError('Invalid node/edge: ' + str((node, edge)))
+                raise ValueError(f'Invalid node/edge: {(node, edge)}')
         return idx
 
     def consume_DBranch(self, path, idx):
@@ -258,8 +256,8 @@ class BayesianPredictor(object):
         idx = self.consume_until_STOP(path, idx+1, check_call=True)
         if idx > 0:
             idx = self.consume_until_STOP(path, idx+1)
-            if idx > 0:
-                self.consume_until_STOP(path, idx+1)
+        if idx > 0:
+            self.consume_until_STOP(path, idx+1)
 
     def consume_DExcept(self, path, idx):
         """
@@ -355,7 +353,7 @@ class BayesianPredictor(object):
                 self.update_DLoop(astnode, path, pathidx)
                 return -1
             else:
-                raise ValueError('Invalid node/edge: ' + str((node, edge)))
+                raise ValueError(f'Invalid node/edge: {(node, edge)}')
 
         return pathidx
 
@@ -370,8 +368,8 @@ class BayesianPredictor(object):
         pathidx = self.update_until_STOP(astnode['_cond'], path, pathidx+1)
         if pathidx > 0:
             pathidx = self.update_until_STOP(astnode['_then'], path, pathidx+1)
-            if pathidx > 0:
-                self.update_until_STOP(astnode['_else'], path, pathidx+1)
+        if pathidx > 0:
+            self.update_until_STOP(astnode['_else'], path, pathidx+1)
 
     def update_DExcept(self, astnode, path, pathidx):
         """

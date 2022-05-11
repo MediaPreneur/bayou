@@ -73,7 +73,7 @@ def train(clargs):
     with open(config_file) as f:
         config = read_config(json.load(f), chars_vocab=clargs.continue_from)
     reader = Reader(clargs, config)
-    
+
     jsconfig = dump_config(config)
     print(clargs)
     print(json.dumps(jsconfig, indent=2))
@@ -135,7 +135,7 @@ def train(clargs):
                            np.mean(mean),
                            np.mean(covariance),
                            end - start))
-            checkpoint_dir = os.path.join(clargs.save, 'model{}.ckpt'.format(i))
+            checkpoint_dir = os.path.join(clargs.save, f'model{i}.ckpt')
             saver.save(sess, checkpoint_dir)
             print('Model checkpointed: {}. Average for epoch evidence: {:.3f}, latent: {:.3f}, '
                   'generation: {:.3f}, loss: {:.3f}'.format

@@ -31,7 +31,7 @@ def plot(clargs):
         psis = np.array([predictor.psi_from_evidence(program) for program in js['programs']])
         ast_calls = []
         for i, psi in enumerate(psis):
-            print('Generate AST {}'.format(i))
+            print(f'Generate AST {i}')
             predictor.calls_in_last_ast = []
             try:
                 predictor.generate_ast(psi)
@@ -45,7 +45,7 @@ def plot(clargs):
         assert len(psis_2d) == len(labels)
 
         for psi_2d, label in zip(psis_2d, labels):
-            print('{} : {}'.format(psi_2d, label))
+            print(f'{psi_2d} : {label}')
         scatter(clargs, zip(psis_2d, labels))
 
 

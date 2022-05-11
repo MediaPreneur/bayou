@@ -36,7 +36,7 @@ def ast_quality_perf_test(clargs):
     elif model_type == 'lle':
         model = bayou.models.low_level_evidences.infer.BayesianPredictor
     else:
-        raise ValueError('Invalid model type in config: ' + model_type)
+        raise ValueError(f'Invalid model type in config: {model_type}')
 
     programs = js['programs']
 
@@ -47,7 +47,7 @@ def ast_quality_perf_test(clargs):
         n = len(programs)
         for i, program in enumerate(programs):
             start = time.time()
-            if not clargs.evidence == 'all':
+            if clargs.evidence != 'all':
                 if program[clargs.evidence] is []:
                     program['out_asts'] = []
                     latency = float('{:.2f}'.format(time.time() - start))
@@ -66,7 +66,7 @@ def ast_quality_perf_test(clargs):
             program['out_asts'] = result['asts']
             latency = float('{:.2f}'.format(time.time() - start))
             program['latency'] = latency
-            print('{}/{} done'.format(i, n))
+            print(f'{i}/{n} done')
 
         if clargs.output_file is None:
             print(json.dumps({'programs': programs}, indent=2))

@@ -124,8 +124,10 @@ def train(clargs):
     config.num_batches = int(len(raw_inputs) / config.batch_size)
     assert config.num_batches > 0, 'Not enough data'
     inputs, targets = wrangle(raw_inputs, raw_targets, config)
-    print('Training data: {} pairs, {} batches, {} vocab size'.format
-          (len(raw_inputs), len(inputs), config.vocab_size))
+    print(
+        f'Training data: {len(raw_inputs)} pairs, {len(inputs)} batches, {config.vocab_size} vocab size'
+    )
+
 
     tf_inputs, tf_targets, loss, optimizer = model(config)
 
@@ -148,7 +150,7 @@ def train(clargs):
                     sum_cost = 0
             checkpoint_dir = os.path.join(clargs.save, 'model.ckpt')
             saver.save(sess, checkpoint_dir)
-            print('Model checkpointed: {}'.format(checkpoint_dir))
+            print(f'Model checkpointed: {checkpoint_dir}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,

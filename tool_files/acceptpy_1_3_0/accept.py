@@ -41,10 +41,10 @@ def run_test_from_python_test_file(test_file_path: str):
     test_file_path -- the path to the python file to run
     """
 
-    print(HEADER + "[running: " + test_file_path + "]" + END_COLOR)
+    print(f"{HEADER}[running: {test_file_path}]{END_COLOR}")
     test_file_parent_path = os.path.abspath(os.path.join(test_file_path, os.pardir))
     test_file_name = os.path.basename(test_file_path)
-    return run_shell_command("python3 " + test_file_name, test_file_parent_path, 0)
+    return run_shell_command(f"python3 {test_file_name}", test_file_parent_path, 0)
 
 
 def run_test_from_json_test_file(test_file_path: str):
@@ -62,7 +62,7 @@ def run_test_from_json_test_file(test_file_path: str):
     test_file_path -- the path to the json test file
     """
 
-    print(HEADER + "[running: " + test_file_path + "]" + END_COLOR)
+    print(f"{HEADER}[running: {test_file_path}]{END_COLOR}")
 
     #
     # Read and parse test_file_path as a JSON file.
@@ -73,7 +73,7 @@ def run_test_from_json_test_file(test_file_path: str):
     try:
         test = json.loads(test_file_content)
     except json.JSONDecodeError:
-        print(WARNING + "non-json test file: " + test_file_path + END_COLOR)
+        print(f"{WARNING}non-json test file: {test_file_path}{END_COLOR}")
         return False
 
     #
@@ -84,7 +84,7 @@ def run_test_from_json_test_file(test_file_path: str):
         test_type = test.get('test_type', None)  # support legacy key name
 
     if test_type is None:
-        print(WARNING + "missing test_type in test file: " + test_file_path + END_COLOR)
+        print(f"{WARNING}missing test_type in test file: {test_file_path}{END_COLOR}")
         return False
 
     if test_type == "shell command":
@@ -92,7 +92,7 @@ def run_test_from_json_test_file(test_file_path: str):
         command = test.get('command', None)
 
         if command is None:
-            print(WARNING + "missing command in test file: " + test_file_path + END_COLOR)
+            print(f"{WARNING}missing command in test file: {test_file_path}{END_COLOR}")
             return False
 
         expect_exit = test.get('expect exit', None)
@@ -105,12 +105,12 @@ def run_test_from_json_test_file(test_file_path: str):
 
         expect_stdout_contains = test.get('expect stdout contains', None)
 
-        print(HEADER + "shell command: " + command + END_COLOR)
+        print(f"{HEADER}shell command: {command}{END_COLOR}")
 
         test_file_parent_path = os.path.abspath(os.path.join(test_file_path, os.pardir))
         return run_shell_command(command, test_file_parent_path, expect_exit, expect_stdout, expect_stdout_contains)
     else:
-        print(WARNING + "unknown test type in test file: " + test_file_path + END_COLOR)
+        print(f"{WARNING}unknown test type in test file: {test_file_path}{END_COLOR}")
         return False
 
 
@@ -134,8 +134,20 @@ def run_shell_command(command: str, working_directory: str, expected_exit: int, 
     std_out = completed_process.stdout.decode('utf-8') # take stdout bytes and assume UTF-8 text
 
     if len(std_out) > 0:
-        print(HEADER + "<begin stdout>" + END_COLOR + completed_process.stdout.decode('utf-8') +
-              HEADER + "<end stdout>" + END_COLOR)
+        print(
+            (
+                (
+                    (
+                        f"{HEADER}<begin stdout>{END_COLOR}"
+                        + completed_process.stdout.decode('utf-8')
+                        + HEADER
+                    )
+                    + "<end stdout>"
+                )
+                + END_COLOR
+            )
+        )
+
 
     #
     # Check if the exit code and standard out match expectations if specified.
@@ -144,19 +156,38 @@ def run_shell_command(command: str, working_directory: str, expected_exit: int, 
 
     if expected_stdout is not None and expected_stdout != std_out:
         test_passed = False
-        print(FAIL + "<expected out>" + END_COLOR + expected_stdout + FAIL + "<end expected out>" + END_COLOR)
-        # n.b. we use the string "<expected out>" instead of "<expected stdout>" so same char length as "<begin stdout>"
-        # and thus lines up visually.
+        print(
+            f"{FAIL}<expected out>{END_COLOR}{expected_stdout}{FAIL}<end expected out>{END_COLOR}"
+        )
+
+            # n.b. we use the string "<expected out>" instead of "<expected stdout>" so same char length as "<begin stdout>"
+            # and thus lines up visually.
 
     if expect_stdout_contains is not None and expect_stdout_contains not in std_out:
         test_passed = False
-        print(FAIL + "<expected stdout to contain>" + END_COLOR + expect_stdout_contains + FAIL +
-              "<end expected stdout to contain>" + END_COLOR)
+        print(
+            (
+                (
+                    f"{FAIL}<expected stdout to contain>{END_COLOR}{expect_stdout_contains}{FAIL}"
+                    + "<end expected stdout to contain>"
+                )
+                + END_COLOR
+            )
+        )
+
 
     if expected_exit is not None and expected_exit != completed_process.returncode:
         test_passed = False
-        print(FAIL + "<expected error code " + str(expected_exit) + " but found " + str(completed_process.returncode) +
-              ">" + END_COLOR)
+        print(
+            (
+                (
+                    f"{FAIL}<expected error code {expected_exit} but found {str(completed_process.returncode)}"
+                    + ">"
+                )
+                + END_COLOR
+            )
+        )
+
 
     return test_passed
 
@@ -205,7 +236,7 @@ if __name__ == "__main__":
                 test_file_paths.append(f)
 
     print("")
-    print("found " + str(len(test_file_paths)) + " tests.")
+    print(f"found {len(test_file_paths)} tests.")
     print("")
 
     #
@@ -217,7 +248,7 @@ if __name__ == "__main__":
     for file in test_file_paths:
         print(HEADER)
         print("#########################")
-        print("   Test " + str(i) + " of " + str(len(test_file_paths)))
+        print(f"   Test {str(i)} of {len(test_file_paths)}")
         print("#########################\n" + END_COLOR)
         if file.endswith(".test"):
             passed = run_test_from_json_test_file(file)
@@ -240,25 +271,30 @@ if __name__ == "__main__":
     #
     # Report end of run statistics to user.
     #
-    if len(failed_test_files_paths) > 0:
+    if failed_test_files_paths:
         print("failed tests:")
 
         for failed_test in failed_test_files_paths:
             print(failed_test)
 
-    if len(failed_test_files_paths) > 0:
+    if failed_test_files_paths:
         print(FAIL)
     else:
         print(OK_GREEN)
 
-    print(str(len(test_file_paths) - len(failed_test_files_paths)) + " of " + str(len(test_file_paths)) +
-          " tests passed.")
+    print(
+        (
+            f"{str(len(test_file_paths) - len(failed_test_files_paths))} of {len(test_file_paths)}"
+            + " tests passed."
+        )
+    )
+
     print(END_COLOR)
 
     #
     # Exit.
     #
-    if len(failed_test_files_paths) > 0:
+    if failed_test_files_paths:
         sys.exit(1)
     else:
         sys.exit(0)

@@ -37,8 +37,10 @@ def extract_evidence(clargs):
     programs = []
     for program in js['programs']:
         sequences = program['sequences']
-        if len(sequences) > clargs.max_seqs or \
-                any([len(sequence['calls']) > clargs.max_seq_length for sequence in sequences]):
+        if len(sequences) > clargs.max_seqs or any(
+            len(sequence['calls']) > clargs.max_seq_length
+            for sequence in sequences
+        ):
             continue
 
         calls = gather_calls(program['ast'])
@@ -61,7 +63,7 @@ def extract_evidence(clargs):
                         [(e, 'keywords') for e in keywords]
             num_samples = clargs.num_samples if clargs.num_samples > 0 else math.ceil(len(evidences)/-clargs.num_samples)
 
-            for i in range(num_samples):
+            for _ in range(num_samples):
                 sample = dict(program)
                 sample['apicalls'] = []
                 sample['types'] = []
@@ -82,7 +84,7 @@ def extract_evidence(clargs):
                 programs.append(sample)
 
         done += 1
-        print('Extracted evidence for {} programs'.format(done), end='\r')
+        print(f'Extracted evidence for {done} programs', end='\r')
 
     print('\nWriting to {}...'.format(clargs.output_file[0]), end='')
     with open(clargs.output_file[0], 'w') as f:

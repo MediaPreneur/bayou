@@ -31,8 +31,7 @@ class Evidence(object):
         self.load_embedding(save_dir)
 
     def dump_config(self):
-        js = {attr: self.__getattribute__(attr) for attr in CONFIG_ENCODER}
-        return js
+        return {attr: self.__getattribute__(attr) for attr in CONFIG_ENCODER}
 
     @staticmethod
     def read_config(js, save_dir):
@@ -44,7 +43,7 @@ class Evidence(object):
             elif name == 'types':
                 e = Types()
             else:
-                raise TypeError('Invalid evidence name: {}'.format(name))
+                raise TypeError(f'Invalid evidence name: {name}')
             e.init_config(evidence, save_dir)
             evidences.append(e)
         return evidences
@@ -83,14 +82,13 @@ class APICalls(Evidence):
 
     def encode(self, inputs, config):
         with tf.variable_scope('apicalls'):
-            encoding = tf.layers.dense(inputs, config.units)
-            return encoding
+            return tf.layers.dense(inputs, config.units)
 
     @staticmethod
     def from_call(call):
         split = call.split('(')[0].split('.')
         cls, name = split[-2:]
-        return [name] if not cls == name else []
+        return [name] if cls != name else []
 
 
 class Types(Evidence):
@@ -111,8 +109,7 @@ class Types(Evidence):
 
     def encode(self, inputs, config):
         with tf.variable_scope('types'):
-            encoding = tf.layers.dense(inputs, config.units)
-            return encoding
+            return tf.layers.dense(inputs, config.units)
 
     @staticmethod
     def from_call(call):
@@ -124,7 +121,7 @@ class Types(Evidence):
         args = [arg.split('.')[-1] for arg in args]
         args = [re.sub('<.*', r'', arg) for arg in args]  # remove generics
         args = [re.sub('\[\]', r'', arg) for arg in args]  # remove array type
-        types_args = [arg for arg in args if not arg == '' and not arg.startswith('Tau_')]
+        types_args = [arg for arg in args if arg != '' and not arg.startswith('Tau_')]
 
         return types + types_args
 
@@ -145,12 +142,12 @@ class Javadoc(Evidence):
 
     def set_dicts(self, data):
         if self.pretrained_embed:
-            save_dir = os.path.join(self.save_dir, 'embed_' + self.name)
+            save_dir = os.path.join(self.save_dir, f'embed_{self.name}')
             with open(os.path.join(save_dir, 'config.json')) as f:
                 js = json.load(f)
             self.chars = js['chars']
         else:
-            self.chars = [C0] + list(set([w for point in data for w in point]))
+            self.chars = [C0] + list({w for point in data for w in point})
         self.vocab = dict(zip(self.chars, range(len(self.chars))))
         self.vocab_size = len(self.vocab)
 

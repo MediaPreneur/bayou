@@ -33,10 +33,10 @@ if __name__ == '__main__':
 
     # Ensure the model directory exists prior to proceeding.
     if not os.path.exists(model_dir) or not os.path.isdir(model_dir):
-        print("No such dir: " + model_dir)
+        print(f"No such dir: {model_dir}")
         exit(1)
 
-    model_file = os.path.join(model_dir, model_name + ".zip")
+    model_file = os.path.join(model_dir, f"{model_name}.zip")
 
     # Check if we already have the model.
     if os.path.exists(model_file):
@@ -48,8 +48,8 @@ if __name__ == '__main__':
 
     # Download new model files from remote server.
     fetch_url = fetch_url_base + model_name + ".zip"
-    model_zip_file = os.path.join(model_dir,  model_name + ".zip")
-    print("Downloading " + fetch_url)
+    model_zip_file = os.path.join(model_dir, f"{model_name}.zip")
+    print(f"Downloading {fetch_url}")
     urllib.request.urlretrieve(fetch_url, model_zip_file)
 
     # Unzip model files and delete ziped model.

@@ -56,7 +56,7 @@ def train(clargs):
     with open(config_file) as f:
         config = read_config(json.load(f), save_dir=clargs.save)
     reader = Reader(clargs, config)
-    
+
     jsconfig = dump_config(config)
     print(clargs)
     print(json.dumps(jsconfig, indent=2))
@@ -102,7 +102,7 @@ def train(clargs):
                           (step, config.num_epochs * config.num_batches, i,
                            np.mean(loss),
                            end - start))
-            checkpoint_dir = os.path.join(clargs.save, 'model{}.ckpt'.format(i))
+            checkpoint_dir = os.path.join(clargs.save, f'model{i}.ckpt')
             saver.save(sess, checkpoint_dir)
             print('Model checkpointed: {}. Average for epoch loss: {:.3f}'.format
                   (checkpoint_dir,

@@ -32,8 +32,10 @@ class Evidence(object):
             self.__setattr__(attr, evidence[attr])
 
     def dump_config(self):
-        js = {attr: self.__getattribute__(attr) for attr in CONFIG_ENCODER + CONFIG_INFER}
-        return js
+        return {
+            attr: self.__getattribute__(attr)
+            for attr in CONFIG_ENCODER + CONFIG_INFER
+        }
 
     @staticmethod
     def read_config(js, chars_vocab):
@@ -47,7 +49,7 @@ class Evidence(object):
             elif name == 'keywords':
                 e = Keywords()
             else:
-                raise TypeError('Invalid evidence name: {}'.format(name))
+                raise TypeError(f'Invalid evidence name: {name}')
             e.init_config(evidence, chars_vocab)
             evidences.append(e)
         return evidences
@@ -114,7 +116,7 @@ class APICalls(Evidence):
             inp = tf.slice(inputs, [0, 0, 0], [config.batch_size, 1, self.vocab_size])
             inp = tf.reshape(inp, [-1, self.vocab_size])
             encoding = tf.layers.dense(inp, self.units, activation=tf.nn.tanh)
-            for i in range(self.num_layers - 1):
+            for _ in range(self.num_layers - 1):
                 encoding = tf.layers.dense(encoding, self.units, activation=tf.nn.tanh)
             w = tf.get_variable('w', [self.units, config.latent_size])
             b = tf.get_variable('b', [config.latent_size])
@@ -123,9 +125,10 @@ class APICalls(Evidence):
 
     def evidence_loss(self, psi, encoding, config):
         sigma_sq = tf.square(self.sigma)
-        loss = 0.5 * (config.latent_size * tf.log(2 * np.pi * sigma_sq + 1e-10)
-                      + tf.square(encoding - psi) / sigma_sq)
-        return loss
+        return 0.5 * (
+            config.latent_size * tf.log(2 * np.pi * sigma_sq + 1e-10)
+            + tf.square(encoding - psi) / sigma_sq
+        )
 
     @staticmethod
     def from_call(callnode):
@@ -173,7 +176,7 @@ class Types(Evidence):
             inp = tf.slice(inputs, [0, 0, 0], [config.batch_size, 1, self.vocab_size])
             inp = tf.reshape(inp, [-1, self.vocab_size])
             encoding = tf.layers.dense(inp, self.units, activation=tf.nn.tanh)
-            for i in range(self.num_layers - 1):
+            for _ in range(self.num_layers - 1):
                 encoding = tf.layers.dense(encoding, self.units, activation=tf.nn.tanh)
             w = tf.get_variable('w', [self.units, config.latent_size])
             b = tf.get_variable('b', [config.latent_size])
@@ -182,9 +185,10 @@ class Types(Evidence):
 
     def evidence_loss(self, psi, encoding, config):
         sigma_sq = tf.square(self.sigma)
-        loss = 0.5 * (config.latent_size * tf.log(2 * np.pi * sigma_sq + 1e-10)
-                      + tf.square(encoding - psi) / sigma_sq)
-        return loss
+        return 0.5 * (
+            config.latent_size * tf.log(2 * np.pi * sigma_sq + 1e-10)
+            + tf.square(encoding - psi) / sigma_sq
+        )
 
     @staticmethod
     def get_types_re(s):
@@ -203,7 +207,7 @@ class Types(Evidence):
         }
 
         for p in primitives:
-            if s == p or re.search('\W{}'.format(p), s):
+            if s == p or re.search(f'\\W{p}', s):
                 types.append(primitives[p])
         return list(set(types))
 
@@ -290,7 +294,7 @@ class Keywords(Evidence):
             inp = tf.slice(inputs, [0, 0, 0], [config.batch_size, 1, self.vocab_size])
             inp = tf.reshape(inp, [-1, self.vocab_size])
             encoding = tf.layers.dense(inp, self.units, activation=tf.nn.tanh)
-            for i in range(self.num_layers - 1):
+            for _ in range(self.num_layers - 1):
                 encoding = tf.layers.dense(encoding, self.units, activation=tf.nn.tanh)
             w = tf.get_variable('w', [self.units, config.latent_size])
             b = tf.get_variable('b', [config.latent_size])
@@ -299,9 +303,10 @@ class Keywords(Evidence):
 
     def evidence_loss(self, psi, encoding, config):
         sigma_sq = tf.square(self.sigma)
-        loss = 0.5 * (config.latent_size * tf.log(2 * np.pi * sigma_sq + 1e-10)
-                      + tf.square(encoding - psi) / sigma_sq)
-        return loss
+        return 0.5 * (
+            config.latent_size * tf.log(2 * np.pi * sigma_sq + 1e-10)
+            + tf.square(encoding - psi) / sigma_sq
+        )
 
     @staticmethod
     def split_camel(s):
@@ -322,7 +327,9 @@ class Keywords(Evidence):
             list(chain.from_iterable([Keywords.split_camel(t) for t in Types.from_call(callnode)]))
 
         # convert to lower case, omit stop words and take the set
-        return list(set([k.lower() for k in keywords if k.lower() not in Keywords.STOP_WORDS]))
+        return list(
+            {k.lower() for k in keywords if k.lower() not in Keywords.STOP_WORDS}
+        )
 
 
 # TODO: handle Javadoc with word2vec
@@ -341,12 +348,12 @@ class Javadoc(Evidence):
 
     def set_dicts(self, data):
         if self.pretrained_embed:
-            save_dir = os.path.join(self.save_dir, 'embed_' + self.name)
+            save_dir = os.path.join(self.save_dir, f'embed_{self.name}')
             with open(os.path.join(save_dir, 'config.json')) as f:
                 js = json.load(f)
             self.chars = js['chars']
         else:
-            self.chars = [C0] + list(set([w for point in data for w in point]))
+            self.chars = [C0] + list({w for point in data for w in point})
         self.vocab = dict(zip(self.chars, range(len(self.chars))))
         self.vocab_size = len(self.vocab)
 

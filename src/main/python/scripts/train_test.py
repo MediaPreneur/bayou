@@ -27,7 +27,7 @@ class message:
         self.str = s
 
     def __enter__(self):
-        print(self.str + '...', end='', flush=True)
+        print(f'{self.str}...', end='', flush=True)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         print('done')
@@ -39,7 +39,7 @@ def split(clargs):
 
     programs = js['programs']
     total = len(programs)
-    print('There are {} programs in total'.format(total))
+    print(f'There are {total} programs in total')
 
     randomize = input('Randomize them (y/n)? ')
     if randomize == 'y':

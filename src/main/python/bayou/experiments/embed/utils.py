@@ -33,9 +33,7 @@ def read_config(js, chars_vocab):
 
 # convert config to JSON
 def dump_config(config):
-    js = {}
-    for attr in CONFIG_GENERAL:
-        js[attr] = config.__getattribute__(attr)
+    js = {attr: config.__getattribute__(attr) for attr in CONFIG_GENERAL}
     for attr in CONFIG_CHARS_VOCAB:
         js[attr] = config.__getattribute__(attr)
 

@@ -32,12 +32,12 @@ def extract_topk(args):
     matches = []
     found = 0
     for i, program in enumerate(programs):
-        print('Matches found for {}/{} programs'.format(found, i), end='\r')
+        print(f'Matches found for {found}/{i} programs', end='\r')
         matched_program = match(program, testing_corpus)
         if matched_program is not None:
             matches.append(matched_program)
             found += 1
-    print('Matches found for {}/{} programs'.format(found, i))
+    print(f'Matches found for {found}/{i} programs')
 
     # do the top-k
     output_programs = sorted(matches, key=lambda p: -p['corpus_dist'])[:args.k]

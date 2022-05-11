@@ -31,7 +31,7 @@ from bayou.models.low_level_evidences.utils import gather_calls
 def _handle_http_post_request_index(predictor):
 
     request_json = request.data.decode("utf-8")  # read request string
-    logging.debug("request_json:" + request_json)
+    logging.debug(f"request_json:{request_json}")
     request_dict = json.loads(request_json)  # parse request as a JSON string
 
     request_type = request_dict['request type']
@@ -69,7 +69,10 @@ def _generate_asts(evidence_json: str, predictor, okay_check=False):
     keywords = list(chain.from_iterable([Keywords.split_camel(c) for c in js['apicalls']])) + \
         list(chain.from_iterable([Keywords.split_camel(t) for t in js['types']])) + \
         js['keywords']
-    js['keywords'] = list(set([k.lower() for k in keywords if k.lower() not in Keywords.STOP_WORDS]))
+    js['keywords'] = list(
+        {k.lower() for k in keywords if k.lower() not in Keywords.STOP_WORDS}
+    )
+
 
     #
     # Generate ASTs from evidence.
@@ -80,11 +83,8 @@ def _generate_asts(evidence_json: str, predictor, okay_check=False):
     # If okay_check is set, retain only those asts that pass the _okay(...) filter. Otherwise retain all asts.
     #
     if okay_check:
-        okay_asts = []
-        for ast in asts:
-            if _okay(js, ast, predictor):
-                okay_asts.append(ast)
-        okay_asts = asts if okay_asts == [] else okay_asts
+        okay_asts = [ast for ast in asts if _okay(js, ast, predictor)]
+        okay_asts = okay_asts or asts
     else:
         okay_asts = asts
 
@@ -102,9 +102,11 @@ def _okay(js, ast, predictor):
     keywords = list(set(chain.from_iterable(
         [bayou.models.low_level_evidences.evidence.Keywords.from_call(call) for call in calls])))
 
-    ev_okay = all([c in apicalls for c in js['apicalls']]) and all([t in types for t in js['types']]) \
-        and all([k in keywords for k in js['keywords']])
-    return ev_okay
+    return (
+        all(c in apicalls for c in js['apicalls'])
+        and all(t in types for t in js['types'])
+        and all(k in keywords for k in js['keywords'])
+    )
 
 
 # terminates the Python process. Does not return.
@@ -128,7 +130,7 @@ if __name__ == '__main__':
         dir_path = os.path.dirname(__file__)
         log_paths = [os.path.join(dir_path, "../../../logs/ast_server.log")]
     else:
-        log_paths = [(d + "/ast_server.log") for d in args.logs_dir.split(os.pathsep)]
+        log_paths = [f"{d}/ast_server.log" for d in args.logs_dir.split(os.pathsep)]
 
     # ensure the parent directory of each log path exists or create it
     for log_path in log_paths:
@@ -163,7 +165,7 @@ if __name__ == '__main__':
         elif model_type == 'lle':
             model = bayou.models.low_level_evidences.infer.BayesianPredictor
         else:
-            raise ValueError('Invalid model type in config: ' + model_type)
+            raise ValueError(f'Invalid model type in config: {model_type}')
         bp = model(args.save_dir, sess)  # create a predictor that can generates ASTs from evidence
 
         # route POST requests to / to _handle_http_post_request_index(...)

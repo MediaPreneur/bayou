@@ -38,17 +38,23 @@ class LDA():
 
     def top_words(self, n):
         features = self.vectorizer.get_feature_names()
-        words = [OrderedDict([(features[i], topic[i]) for i in topic.argsort()[:-n - 1:-1]])
-                 for topic in self.model.components_]
-        return words
+        return [
+            OrderedDict(
+                [(features[i], topic[i]) for i in topic.argsort()[: -n - 1 : -1]]
+            )
+            for topic in self.model.components_
+        ]
 
     def train(self, docs):
         data = [';'.join(bow) for bow in docs]
         vect = self.vectorizer.fit_transform(data)
         self.alpha = self.alpha if self.alpha is not None else 50./self.ntopics
         self.beta = self.beta if self.beta is not None else 200./len(self.vectorizer.vocabulary_)
-        print('{} words in vocabulary'.format(len(self.vectorizer.vocabulary_)))
-        print('Training LDA with {} topics, {} alpha, {} beta'.format(self.ntopics, self.alpha, self.beta))
+        print(f'{len(self.vectorizer.vocabulary_)} words in vocabulary')
+        print(
+            f'Training LDA with {self.ntopics} topics, {self.alpha} alpha, {self.beta} beta'
+        )
+
         self.model = LatentDirichletAllocation(self.ntopics,
                                                doc_topic_prior=self.alpha, topic_word_prior=self.beta,
                                                learning_method='batch', max_iter=100,
@@ -64,8 +70,10 @@ class LDA():
         dist = self.model.transform(vect)
         assert vect.shape[0] == dist.shape[0]
 
-        # NOTE: if a document is empty, this method returns a zero topic-dist vector
-        samples = [list(doc_topic_dist) if m.nnz > 0 else ([0.] * self.model.n_components)
-                   for m, doc_topic_dist in zip(vect, dist)]
-        return samples
+        return [
+            list(doc_topic_dist)
+            if m.nnz > 0
+            else ([0.0] * self.model.n_components)
+            for m, doc_topic_dist in zip(vect, dist)
+        ]
 
